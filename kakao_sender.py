@@ -47,37 +47,32 @@ def send_to_kakao(text_message):
         print("❌ [.env] KAKAO_ACCESS_TOKEN 설정이 없습니다. 처음 1회 kakao_auth.py를 실행하여 토큰을 발급받으세요.")
         return False
         
-    # 텍스트가 매우 길 경우 여러 개의 카카오톡 메시지로 쪼개어 보냅니다. (템플릿 한도 약 800자 고려)
-    chunk_size = 600
-    chunks = [text_message[i:i+chunk_size] for i in range(0, len(text_message), chunk_size)]
-    
     success = True
-    for i, chunk in enumerate(chunks, 1):
-        resp = _send_chunk(access_token, chunk)
+    resp = _send_chunk(access_token, text_message)
         
-        # 만료 시 1회만 리프레시 시도
-        if resp.status_code == 401 and i == 1:
-            print("💡 Access Token 재발급 시도 중...")
-            new_tokens = refresh_token(rest_api_key, refresh_token_val)
-            if new_tokens:
-                access_token = new_tokens.get("access_token")
-                set_key(ENV_FILE, "KAKAO_ACCESS_TOKEN", access_token)
+    # 만료 시 1회만 리프레시 시도
+    if resp.status_code == 401:
+        print("💡 Access Token 재발급 시도 중...")
+        new_tokens = refresh_token(rest_api_key, refresh_token_val)
+        if new_tokens:
+            access_token = new_tokens.get("access_token")
+            set_key(ENV_FILE, "KAKAO_ACCESS_TOKEN", access_token)
                 
-                if "refresh_token" in new_tokens:
-                    refresh_token_val = new_tokens.get("refresh_token")
-                    set_key(ENV_FILE, "KAKAO_REFRESH_TOKEN", refresh_token_val)
+            if "refresh_token" in new_tokens:
+                refresh_token_val = new_tokens.get("refresh_token")
+                set_key(ENV_FILE, "KAKAO_REFRESH_TOKEN", refresh_token_val)
                     
-                # 재시도
-                resp = _send_chunk(access_token, chunk)
-            else:
-                print("❌ 토큰 재발급 실패. kakao_auth.py로 재인증이 필요합니다.")
-                return False
-                
-        if resp.status_code == 200:
-            print(f"✅ 카카오톡 메시지 분할 전송 성공 ({i}/{len(chunks)})")
+            # 재시도
+            resp = _send_chunk(access_token, text_message)
         else:
-            print(f"❌ 카카오톡 전송 실패: {resp.status_code} - {resp.text}")
-            success = False
+            print("❌ 토큰 재발급 실패. kakao_auth.py로 재인증이 필요합니다.")
+            return False
+                
+    if resp.status_code == 200:
+        print(f"✅ 카카오톡 메시지 전송 성공 (1/1)")
+    else:
+        print(f"❌ 카카오톡 전송 실패: {resp.status_code} - {resp.text}")
+        success = False
             
     return success
 

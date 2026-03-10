@@ -133,6 +133,7 @@ SITE_QUERIES_MAP = {
     "DTaQ(기품원)":        'site:dtaq.re.kr MBSE OR "디지털 엔지니어링" OR "디지털 트윈"',
     "KRIT(국기연)":        'site:krit.re.kr MBSE OR "디지털 엔지니어링" OR "디지털 트윈"',
     "KAI(한국항공우주)":   'site:koreaaero.com MBSE OR "디지털 엔지니어링" OR "디지털 트윈" OR SysML',
+    "KAI(채용웹사이트)":    'site:koreaaero-recruit.careerlink.kr MBSE OR "디지털 엔지니어링" OR "디지털 트윈" OR "시스템 엔지니어링" OR SysML',
     "Hanwha Aerospace":  'site:hanwhaaerospace.co.kr MBSE OR "디지털 엔지니어링" OR "디지털 트윈"',
     "LIG Nex1":          'site:lignex1.com MBSE OR "디지털 엔지니어링" OR "디지털 트윈"',
 
