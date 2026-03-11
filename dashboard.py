@@ -220,6 +220,21 @@ def load_data():
     query = "SELECT * FROM articles ORDER BY created_at DESC"
     df = pd.read_sql_query(query, conn)
     conn.close()
+    # Google News 리디렉트 URL을 실제 원문 URL로 변환
+    if not df.empty and 'original_url' in df.columns:
+        mask = df['original_url'].str.contains('news.google.com', na=False)
+        if mask.any():
+            try:
+                from googlenewsdecoder import new_decoderv1
+                for idx in df[mask].index:
+                    try:
+                        result = new_decoderv1(df.at[idx, 'original_url'])
+                        if result.get('status') and result.get('decoded_url'):
+                            df.at[idx, 'original_url'] = result['decoded_url']
+                    except Exception:
+                        pass
+            except ImportError:
+                pass
     return df
 
 # ── Hero ──
