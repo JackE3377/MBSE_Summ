@@ -309,6 +309,10 @@ for _, row in filtered_df.iterrows():
     badge_labels = {3: "MEGA TREND", 2: "PRACTICAL", 1: "GENERAL"}
     badge_text = badge_labels.get(lvl, "")
 
+    # Google 검색 링크 생성 (원문 URL이 Google News 리디렉트이므로)
+    from urllib.parse import quote_plus
+    search_q = quote_plus(row['title_kr'].replace('[', '').replace(']', ''))
+
     card_html = f"""
     <div class="article-card">
         <div class="article-header">
@@ -322,7 +326,7 @@ for _, row in filtered_df.iterrows():
             <strong>3.</strong> {row['summary_3']}
         </div>
         <div class="article-insight">💡 {row['insight']}</div>
-        <a class="article-link" href="{row['original_url']}" target="_blank">원문 보기 →</a>
+        <a class="article-link" href="https://www.google.com/search?q={search_q}" target="_blank">원문 검색 →</a>
     </div>
     """
     st.markdown(card_html, unsafe_allow_html=True)

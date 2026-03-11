@@ -91,8 +91,11 @@ def get_combined_queries():
     # 중복 제거
     return list(set(keywords)), list(set(queries + site_queries_list))
 
+def resolve_google_news_url(google_url: str) -> str:
+    """Google News 리디렉트 URL에서 source 도메인 기반 검색 URL 제공 (fallback)"""
+    return google_url
+
 def fetch_google_news_rss(query: str, cutoff_date: datetime) -> list[dict]:
-    # 기존 RSS 수집 코드 동일 (간소화 버젼)
     articles = []
     encoded = quote_plus(query)
     url = f"https://news.google.com/rss/search?q={encoded}&hl=en&gl=US&ceid=US:en"
@@ -106,7 +109,9 @@ def fetch_google_news_rss(query: str, cutoff_date: datetime) -> list[dict]:
             link = (item.findtext("link") or "").strip()
             desc = (item.findtext("description") or "").strip()
             pub_date_str = (item.findtext("pubDate") or "").strip()
-            source = item.findtext("source") or ""
+            source_el = item.find("source")
+            source = source_el.text if source_el is not None else ""
+            source_url = source_el.get("url", "") if source_el is not None else ""
             
             pub_date = None
             if pub_date_str:
@@ -118,7 +123,7 @@ def fetch_google_news_rss(query: str, cutoff_date: datetime) -> list[dict]:
             
             if desc:
                 desc = BeautifulSoup(desc, "html.parser").get_text(separator=" ", strip=True)
-            articles.append({"title": title, "url": link, "desc": desc, "source": source})
+            articles.append({"title": title, "url": link, "desc": desc, "source": source, "source_url": source_url})
     except Exception:
         pass
     return articles
