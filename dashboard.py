@@ -3,11 +3,11 @@ import sqlite3
 import pandas as pd
 import os
 
-st.set_page_config(page_title="MBSE HotBoard", page_icon="🔥", layout="wide")
+st.set_page_config(page_title="MBSE HotBoard", page_icon="🔥", layout="wide", initial_sidebar_state="collapsed")
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mbse_history.db")
 
-# ── Apple-style CSS ──
+# ── Apple-style CSS (모바일 반응형) ──
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -19,16 +19,20 @@ html, body, [class*="css"] {
 .stApp {
     background: linear-gradient(180deg, #0a0a0a 0%, #1a1a2e 100%);
 }
-header[data-testid="stHeader"] {
-    background: transparent;
+header[data-testid="stHeader"] { background: transparent; }
+
+/* Hide Streamlit chrome */
+#MainMenu, footer, .stDeployButton,
+header[data-testid="stHeader"] .stActionButton,
+[data-testid="manage-app-button"],
+.viewerBadge_container__r5tak,
+.styles_viewerBadge__CvC9N {
+    display: none !important;
 }
 
-/* Hide default decorations */
-#MainMenu, footer, .stDeployButton {display: none;}
-
-/* Hero title */
+/* Hero */
 .hero-title {
-    font-size: 2.8rem;
+    font-size: clamp(1.8rem, 6vw, 2.8rem);
     font-weight: 700;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     -webkit-background-clip: text;
@@ -40,17 +44,26 @@ header[data-testid="stHeader"] {
 .hero-subtitle {
     text-align: center;
     color: #8e8ea0;
-    font-size: 1rem;
+    font-size: clamp(0.75rem, 2.5vw, 1rem);
     font-weight: 300;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
 }
 
 /* Metric cards */
+.metrics-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.8rem;
+    margin-bottom: 1.5rem;
+}
+@media (max-width: 640px) {
+    .metrics-row { grid-template-columns: 1fr; gap: 0.6rem; }
+}
 .metric-card {
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 16px;
-    padding: 1.5rem;
+    padding: clamp(1rem, 3vw, 1.5rem);
     text-align: center;
     backdrop-filter: blur(20px);
     transition: transform 0.2s, border-color 0.2s;
@@ -60,16 +73,59 @@ header[data-testid="stHeader"] {
     border-color: rgba(102,126,234,0.4);
 }
 .metric-value {
-    font-size: 2.2rem;
+    font-size: clamp(1.6rem, 5vw, 2.2rem);
     font-weight: 700;
     color: #ffffff;
     line-height: 1.2;
 }
 .metric-label {
-    font-size: 0.85rem;
+    font-size: clamp(0.7rem, 2vw, 0.85rem);
     color: #8e8ea0;
     margin-top: 0.3rem;
-    font-weight: 400;
+}
+
+/* Date pills */
+.date-scroll {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding: 0.5rem 0 1rem 0;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+.date-scroll::-webkit-scrollbar { display: none; }
+.date-pill {
+    flex-shrink: 0;
+    padding: 0.45rem 1rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04);
+    color: #a1a1aa;
+    text-decoration: none;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.date-pill:hover {
+    background: rgba(102,126,234,0.15);
+    border-color: rgba(102,126,234,0.4);
+    color: #c4b5fd;
+}
+.date-pill.active {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    border-color: transparent;
+    font-weight: 600;
+}
+.date-pill .pill-count {
+    display: inline-block;
+    background: rgba(0,0,0,0.25);
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    font-size: 0.65rem;
+    margin-left: 0.3rem;
 }
 
 /* Article cards */
@@ -77,8 +133,8 @@ header[data-testid="stHeader"] {
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.06);
     border-radius: 16px;
-    padding: 1.5rem 1.8rem;
-    margin-bottom: 1rem;
+    padding: clamp(1rem, 3vw, 1.5rem) clamp(1rem, 4vw, 1.8rem);
+    margin-bottom: 0.8rem;
     transition: all 0.25s ease;
 }
 .article-card:hover {
@@ -86,28 +142,35 @@ header[data-testid="stHeader"] {
     border-color: rgba(102,126,234,0.3);
     transform: translateY(-1px);
 }
+.article-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
 .article-date {
-    font-size: 0.75rem;
+    font-size: clamp(0.65rem, 2vw, 0.75rem);
     color: #6b6b80;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
 .article-title {
-    font-size: 1.15rem;
+    font-size: clamp(0.95rem, 3vw, 1.15rem);
     font-weight: 600;
     color: #e4e4e7;
     margin: 0.4rem 0 0.6rem 0;
     line-height: 1.4;
 }
 .article-summary {
-    font-size: 0.9rem;
+    font-size: clamp(0.8rem, 2.5vw, 0.9rem);
     color: #a1a1aa;
     line-height: 1.7;
     margin-bottom: 0.8rem;
 }
 .article-insight {
-    font-size: 0.88rem;
+    font-size: clamp(0.78rem, 2.5vw, 0.88rem);
     color: #c4b5fd;
     font-style: italic;
     border-left: 3px solid #7c3aed;
@@ -116,42 +179,27 @@ header[data-testid="stHeader"] {
 }
 .article-link {
     display: inline-block;
-    font-size: 0.8rem;
+    font-size: clamp(0.7rem, 2vw, 0.8rem);
     color: #667eea;
     text-decoration: none;
     font-weight: 500;
 }
-.article-link:hover {
-    color: #818cf8;
-    text-decoration: underline;
-}
+.article-link:hover { color: #818cf8; text-decoration: underline; }
 
 /* Level badges */
 .badge {
     display: inline-block;
     padding: 0.2rem 0.7rem;
     border-radius: 999px;
-    font-size: 0.7rem;
+    font-size: clamp(0.6rem, 1.8vw, 0.7rem);
     font-weight: 600;
     letter-spacing: 0.03em;
 }
-.badge-3 {
-    background: rgba(239,68,68,0.15);
-    color: #f87171;
-    border: 1px solid rgba(239,68,68,0.3);
-}
-.badge-2 {
-    background: rgba(251,191,36,0.12);
-    color: #fbbf24;
-    border: 1px solid rgba(251,191,36,0.3);
-}
-.badge-1 {
-    background: rgba(96,165,250,0.12);
-    color: #60a5fa;
-    border: 1px solid rgba(96,165,250,0.3);
-}
+.badge-3 { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+.badge-2 { background: rgba(251,191,36,0.12); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+.badge-1 { background: rgba(96,165,250,0.12); color: #60a5fa; border: 1px solid rgba(96,165,250,0.3); }
 
-/* Search */
+/* Streamlit inputs */
 .stTextInput > div > div > input {
     background: rgba(255,255,255,0.05) !important;
     border: 1px solid rgba(255,255,255,0.1) !important;
@@ -165,12 +213,15 @@ header[data-testid="stHeader"] {
     border-radius: 12px !important;
 }
 
-/* Section divider */
+/* Divider */
 .section-divider {
     height: 1px;
     background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
-    margin: 2rem 0;
+    margin: 1.5rem 0;
 }
+
+/* Footer hide */
+.stApp > footer { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -184,7 +235,7 @@ def load_data():
     return df
 
 # ── Hero ──
-st.markdown('<div class="hero-title">MBSE HotBoard</div>', unsafe_allow_html=True)
+st.markdown('<div class="hero-title">🔥 MBSE HotBoard</div>', unsafe_allow_html=True)
 st.markdown('<div class="hero-subtitle">AI가 매일 수집 · 분석하는 글로벌 방산/항공우주 MBSE 트렌드</div>', unsafe_allow_html=True)
 
 df = load_data()
@@ -193,18 +244,41 @@ if df.empty:
     st.warning("아직 수집된 데이터가 없습니다. AI 에이전트를 먼저 실행해주세요.")
     st.stop()
 
-# ── Metrics ──
+# ── Metrics (pure HTML grid, 모바일 자동 1열) ──
 total = len(df)
 mega = len(df[df['importance_level'] == 3])
 latest = df['date'].iloc[0] if 'date' in df.columns else '-'
 
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.markdown(f'<div class="metric-card"><div class="metric-value">{total}</div><div class="metric-label">누적 기사</div></div>', unsafe_allow_html=True)
-with col2:
-    st.markdown(f'<div class="metric-card"><div class="metric-value" style="color:#f87171">{mega}</div><div class="metric-label">🔥 메가트렌드</div></div>', unsafe_allow_html=True)
-with col3:
-    st.markdown(f'<div class="metric-card"><div class="metric-value" style="font-size:1.4rem">{latest}</div><div class="metric-label">최근 수집일</div></div>', unsafe_allow_html=True)
+st.markdown(f"""
+<div class="metrics-row">
+    <div class="metric-card"><div class="metric-value">{total}</div><div class="metric-label">누적 기사</div></div>
+    <div class="metric-card"><div class="metric-value" style="color:#f87171">{mega}</div><div class="metric-label">🔥 메가트렌드</div></div>
+    <div class="metric-card"><div class="metric-value" style="font-size:clamp(1rem,3.5vw,1.4rem)">{latest}</div><div class="metric-label">최근 수집일</div></div>
+</div>
+""", unsafe_allow_html=True)
+
+# ── Date pills (데이터 있는 날짜만 표시) ──
+available_dates = sorted(df['date'].unique(), reverse=True)
+
+# Streamlit의 query_params로 날짜 선택 상태 관리
+params = st.query_params
+selected_date = params.get("date", "전체")
+
+date_pills_html = ""
+all_active = "active" if selected_date == "전체" else ""
+date_pills_html += f'<a class="date-pill {all_active}" href="?date=전체">전체 <span class="pill-count">{total}</span></a>'
+
+for d in available_dates:
+    count = len(df[df['date'] == d])
+    active = "active" if selected_date == d else ""
+    # 날짜 표시 간소화 (MM.DD)
+    try:
+        short = d[5:].replace("-", ".")
+    except:
+        short = d
+    date_pills_html += f'<a class="date-pill {active}" href="?date={d}">{short} <span class="pill-count">{count}</span></a>'
+
+st.markdown(f'<div class="date-scroll">{date_pills_html}</div>', unsafe_allow_html=True)
 
 st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 
@@ -215,7 +289,14 @@ with col_search:
 with col_level:
     level_filter = st.selectbox("중요도", ["전체", "🔥🔥🔥 메가트렌드", "🔥🔥 실무", "🔥 일반"], label_visibility="collapsed")
 
+# ── Apply filters ──
 filtered_df = df.copy()
+
+# 날짜 필터
+if selected_date != "전체" and selected_date in available_dates:
+    filtered_df = filtered_df[filtered_df['date'] == selected_date]
+
+# 검색 필터
 if search_query:
     filtered_df = filtered_df[
         filtered_df['title_kr'].str.contains(search_query, case=False, na=False) |
@@ -223,6 +304,7 @@ if search_query:
         filtered_df['summary_1'].str.contains(search_query, case=False, na=False)
     ]
 
+# 중요도 필터
 level_map = {"🔥🔥🔥 메가트렌드": 3, "🔥🔥 실무": 2, "🔥 일반": 1}
 if level_filter in level_map:
     filtered_df = filtered_df[filtered_df['importance_level'] == level_map[level_filter]]
@@ -238,7 +320,7 @@ for _, row in filtered_df.iterrows():
 
     card_html = f"""
     <div class="article-card">
-        <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="article-header">
             <span class="article-date">{row['date']}</span>
             <span class="badge {badge_class}">{badge_text}</span>
         </div>
@@ -253,3 +335,6 @@ for _, row in filtered_df.iterrows():
     </div>
     """
     st.markdown(card_html, unsafe_allow_html=True)
+
+# ── 빈 공간으로 마무리 (footer 대체) ──
+st.markdown('<div style="height:3rem"></div>', unsafe_allow_html=True)
