@@ -49,39 +49,27 @@ header[data-testid="stHeader"] .stActionButton,
     margin-bottom: 1.5rem;
 }
 
-/* Metric cards */
-.metrics-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.8rem;
-    margin-bottom: 1.5rem;
+/* Compact stats bar */
+.stats-bar {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+    padding: 0.5rem 0;
 }
-@media (max-width: 640px) {
-    .metrics-row { grid-template-columns: 1fr; gap: 0.6rem; }
-}
-.metric-card {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 16px;
-    padding: clamp(1rem, 3vw, 1.5rem);
-    text-align: center;
-    backdrop-filter: blur(20px);
-    transition: transform 0.2s, border-color 0.2s;
-}
-.metric-card:hover {
-    transform: translateY(-2px);
-    border-color: rgba(102,126,234,0.4);
-}
-.metric-value {
-    font-size: clamp(1.6rem, 5vw, 2.2rem);
-    font-weight: 700;
-    color: #ffffff;
-    line-height: 1.2;
-}
-.metric-label {
-    font-size: clamp(0.7rem, 2vw, 0.85rem);
+.stats-bar .stat {
+    font-size: 0.8rem;
     color: #8e8ea0;
-    margin-top: 0.3rem;
+    font-weight: 400;
+}
+.stats-bar .stat b {
+    color: #e4e4e7;
+    font-weight: 600;
+    margin-right: 0.2rem;
+}
+.stats-bar .stat.mega b {
+    color: #f87171;
 }
 
 /* Date pills */
@@ -244,16 +232,16 @@ if df.empty:
     st.warning("아직 수집된 데이터가 없습니다. AI 에이전트를 먼저 실행해주세요.")
     st.stop()
 
-# ── Metrics (pure HTML grid, 모바일 자동 1열) ──
+# ── Compact stats bar ──
 total = len(df)
 mega = len(df[df['importance_level'] == 3])
 latest = df['date'].iloc[0] if 'date' in df.columns else '-'
 
 st.markdown(f"""
-<div class="metrics-row">
-    <div class="metric-card"><div class="metric-value">{total}</div><div class="metric-label">누적 기사</div></div>
-    <div class="metric-card"><div class="metric-value" style="color:#f87171">{mega}</div><div class="metric-label">🔥 메가트렌드</div></div>
-    <div class="metric-card"><div class="metric-value" style="font-size:clamp(1rem,3.5vw,1.4rem)">{latest}</div><div class="metric-label">최근 수집일</div></div>
+<div class="stats-bar">
+    <span class="stat"><b>{total}</b>누적</span>
+    <span class="stat mega"><b>{mega}</b>🔥 메가트렌드</span>
+    <span class="stat"><b>{latest}</b>최근 수집</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -308,6 +296,9 @@ if search_query:
 level_map = {"🔥🔥🔥 메가트렌드": 3, "🔥🔥 실무": 2, "🔥 일반": 1}
 if level_filter in level_map:
     filtered_df = filtered_df[filtered_df['importance_level'] == level_map[level_filter]]
+
+# 중요도 기준 정렬 (MEGA TREND 먼저)
+filtered_df = filtered_df.sort_values(by=['importance_level', 'date'], ascending=[False, False])
 
 st.markdown(f'<p style="color:#6b6b80;font-size:0.85rem;margin-bottom:1rem">{len(filtered_df)}건의 기사</p>', unsafe_allow_html=True)
 
