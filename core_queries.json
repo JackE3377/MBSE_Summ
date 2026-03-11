@@ -1,0 +1,22 @@
+{
+    "keywords": [
+        "MBSE",
+        "SysML",
+        "Digital Engineering",
+        "Systems Architecture"
+    ],
+    "keyword_queries": [
+        "MBSE \"Model-Based Systems Engineering\"",
+        "SysML \"Systems Modeling Language\"",
+        "\"Digital Engineering\" defense OR military OR aerospace",
+        "SysML 2.0"
+    ],
+    "site_queries": {
+        "Boeing": "site:boeing.com MBSE OR \"digital engineering\"",
+        "Lockheed Martin": "site:lockheedmartin.com MBSE OR \"digital engineering\" OR \"digital twin\" OR \"digital thread\"",
+        "Northrop Grumman": "site:northropgrumman.com MBSE OR \"digital engineering\" OR \"digital twin\"",
+        "RTX/Raytheon": "site:rtx.com MBSE OR \"digital engineering\" OR \"digital twin\" OR \"model-based\"",
+        "L3Harris": "site:l3harris.com MBSE OR \"digital engineering\" OR \"digital twin\"",
+        "INCOSE": "site:incose.org MBSE OR SysML OR \"systems engineering\""
+    }
+}

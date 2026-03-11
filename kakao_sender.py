@@ -17,17 +17,17 @@ def refresh_token(rest_api_key, refresh_token):
         return resp.json()
     return None
 
-def _send_chunk(access_token, chunk):
+def _send_text(access_token, text):
+    """카카오톡 나에게 보내기 - 버튼 없는 텍스트 전용"""
     url = "https://kapi.kakao.com/v2/api/talk/memo/default/send"
     header = {"Authorization": f"Bearer {access_token}"}
     template_object = {
         "object_type": "text",
-        "text": chunk,
+        "text": text,
         "link": {
-            "web_url": "https://developers.kakao.com",
-            "mobile_web_url": "https://developers.kakao.com"
-        },
-        "button_title": "원문 확인"
+            "web_url": "",
+            "mobile_web_url": ""
+        }
     }
     data = {"template_object": json.dumps(template_object)}
     resp = requests.post(url, headers=header, data=data)
@@ -48,7 +48,7 @@ def send_to_kakao(text_message):
         return False
         
     success = True
-    resp = _send_chunk(access_token, text_message)
+    resp = _send_text(access_token, text_message)
         
     # 만료 시 1회만 리프레시 시도
     if resp.status_code == 401:
@@ -63,7 +63,7 @@ def send_to_kakao(text_message):
                 set_key(ENV_FILE, "KAKAO_REFRESH_TOKEN", refresh_token_val)
                     
             # 재시도
-            resp = _send_chunk(access_token, text_message)
+            resp = _send_text(access_token, text_message)
         else:
             print("❌ 토큰 재발급 실패. kakao_auth.py로 재인증이 필요합니다.")
             return False

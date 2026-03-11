@@ -1,0 +1,16 @@
+{
+    "dynamic_keywords": [],
+    "dynamic_keyword_queries": [
+        "\"Digital Thread\" AND \"MBSE\"",
+        "'Model Based Manufacturing' OR 'MBM' MBSE",
+        "'SysML v2' AND ('API' OR 'Interoperability')",
+        "MOSA",
+        "MOSA MBSE",
+        "\"SysML v2\" OR \"UAF\"",
+        "\"MOSA\" OR \"Open Systems Architecture\"",
+        "'Digital Thread' AND 'MBSE' AND 'PLM'",
+        "\"Digital Thread\" AND \"AI\"",
+        "'LTAMDS' OR 'JPALS' MBSE"
+    ],
+    "dynamic_site_queries": {}
+}
