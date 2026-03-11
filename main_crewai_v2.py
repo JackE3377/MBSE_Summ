@@ -92,7 +92,16 @@ def get_combined_queries():
     return list(set(keywords)), list(set(queries + site_queries_list))
 
 def resolve_google_news_url(google_url: str) -> str:
-    """Google News 리디렉트 URL에서 source 도메인 기반 검색 URL 제공 (fallback)"""
+    """Google News 리디렉트 URL을 실제 원문 URL로 변환"""
+    if not google_url or 'news.google.com' not in google_url:
+        return google_url
+    try:
+        from googlenewsdecoder import new_decoderv1
+        result = new_decoderv1(google_url)
+        if result.get('status') and result.get('decoded_url'):
+            return result['decoded_url']
+    except Exception:
+        pass
     return google_url
 
 def fetch_google_news_rss(query: str, cutoff_date: datetime) -> list[dict]:
@@ -123,7 +132,11 @@ def fetch_google_news_rss(query: str, cutoff_date: datetime) -> list[dict]:
             
             if desc:
                 desc = BeautifulSoup(desc, "html.parser").get_text(separator=" ", strip=True)
-            articles.append({"title": title, "url": link, "desc": desc, "source": source, "source_url": source_url})
+            
+            # Google News 리디렉트 → 실제 원문 URL 추출
+            real_url = resolve_google_news_url(link)
+            
+            articles.append({"title": title, "url": real_url, "desc": desc, "source": source, "source_url": source_url})
     except Exception:
         pass
     return articles
