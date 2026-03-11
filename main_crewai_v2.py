@@ -189,9 +189,30 @@ def run_v2_orchestrator():
     if not unique_arts:
         print("📭 신규 기사 없음.")
         return
-        
+    
+    # [Anti-Bias] 특정 출처 편중 방지: 동일 소스 최대 2건
+    MAX_PER_SOURCE = 2
+    source_count = {}
+    balanced_arts = []
+    for a in unique_arts:
+        src = (a.get('source') or '').strip().lower()
+        # URL 기반 도메인도 체크 (source 태그가 없는 경우 대비)
+        if not src:
+            try:
+                from urllib.parse import urlparse
+                src = urlparse(a.get('url', '')).netloc.replace('www.', '')
+            except:
+                src = 'unknown'
+        source_count[src] = source_count.get(src, 0) + 1
+        if source_count[src] <= MAX_PER_SOURCE:
+            balanced_arts.append(a)
+        else:
+            print(f"  ⚖️ 편중 방지: [{src}] 초과 기사 제외 → {a['title'][:40]}")
+    
+    print(f"⚖️ 소스 균형 조정 후: {len(balanced_arts)}건 (원본 {len(unique_arts)}건)")
+    
     # 상위 10건(속도 조절) 본문 추출
-    target_arts = unique_arts[:10]
+    target_arts = balanced_arts[:10]
     for a in target_arts:
         a['full_text'] = fetch_article_text(a['url'])
         history.add(make_hash(a['url'], a['title']))
@@ -219,7 +240,9 @@ def run_v2_orchestrator():
     
     # Task 2: Pydantic으로 동적 쿼리 응답 생성
     task_evolve = Task(
-        description="이전 Task에서 도출된 최신 중요 기사들을 분석하라. 현재의 MBSE, SysML 트렌드에서 새롭게 떠오르는 기술 스택(예: UAF, Cameo, SysML v2 API)이나 특정 국방 프로젝트명이 등장했다면 이를 구글 뉴스 검색이 가능한 검색어 쿼리(예: 'SysML v2' OR 'API')로 1~2개 만들어라.",
+        description="이전 Task에서 도출된 최신 중요 기사들을 분석하라. 현재의 MBSE, SysML 트렌드에서 새롭게 떠오르는 기술 스택(예: UAF, Cameo, SysML v2 API)이나 특정 국방 프로젝트명이 등장했다면 이를 구글 뉴스 검색이 가능한 검색어 쿼리(예: 'SysML v2' OR 'API')로 1~2개 만들어라.\n\n"
+                    "⚠️ 중요 규칙: 특정 기업명(RTX, Boeing, Lockheed 등)이나 기업 고유 프로젝트명(LTAMDS, JPALS 등)을 쿼리에 넣지 마라. "
+                    "기업별 수집은 이미 site_queries가 담당한다. 동적 쿼리는 반드시 범용 기술 트렌드 키워드(예: Digital Thread, MOSA, SysML v2)로만 구성하라.",
         expected_output="`DynamicQueryUpdate` JSON 스키마 구조로 된 신규 트렌드 쿼리 목록",
         agent=trend_analyzer,
         output_pydantic=DynamicQueryUpdate
