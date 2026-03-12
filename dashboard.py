@@ -2,6 +2,7 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 import os
+from datetime import datetime
 
 st.set_page_config(page_title="MBSE HotBoard", page_icon="🔥", layout="wide", initial_sidebar_state="collapsed")
 
@@ -265,7 +266,9 @@ available_dates = sorted(df['date'].unique(), reverse=True)
 
 # Streamlit의 query_params로 날짜 선택 상태 관리
 params = st.query_params
-selected_date = params.get("date", "전체")
+today_str = datetime.now().strftime("%Y-%m-%d")
+default_date = today_str if today_str in available_dates else available_dates[0]
+selected_date = params.get("date", default_date)
 
 date_pills_html = ""
 all_active = "active" if selected_date == "전체" else ""
