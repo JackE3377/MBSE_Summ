@@ -1,14 +1,16 @@
 {
     "dynamic_keywords": [],
     "dynamic_keyword_queries": [
-        "\"Digital Thread\" AND \"MBSE\"",
-        "'Model Based Manufacturing' OR 'MBM' MBSE",
-        "'SysML v2' AND ('API' OR 'Interoperability')",
-        "MOSA MBSE",
-        "\"SysML v2\" OR \"UAF\"",
         "\"MOSA\" OR \"Open Systems Architecture\"",
+        "MOSA MBSE",
+        "\"Digital Thread\" AND \"AI\"",
+        "'Model Based Manufacturing' OR 'MBM' MBSE",
+        "MOSA OR 'Modular Open Systems Approach'",
         "'Digital Thread' AND 'MBSE' AND 'PLM'",
-        "\"Digital Thread\" AND \"AI\""
+        "\"Digital Thread\" AND \"MBSE\"",
+        "Digital Engineering OR 'MBSE integration'",
+        "\"SysML v2\" OR \"UAF\"",
+        "'SysML v2' AND ('API' OR 'Interoperability')"
     ],
     "dynamic_site_queries": {}
 }
