@@ -219,14 +219,40 @@ header[data-testid="stHeader"] .stActionButton,
 </style>
 """, unsafe_allow_html=True)
 
-def load_data():
+def load_metadata():
+    """날짜 메타정보만 조회 — 전체 기사 로드 없이 첫 화면 빠른 렌더링"""
+    if not os.path.exists(DB_PATH):
+        return None
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM articles")
+    total = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM articles WHERE importance_level = 3")
+    mega = cursor.fetchone()[0]
+    cursor.execute("SELECT MAX(date) FROM articles")
+    latest = cursor.fetchone()[0] or '-'
+    cursor.execute("SELECT date, COUNT(*) FROM articles GROUP BY date ORDER BY date DESC")
+    date_counts = dict(cursor.fetchall())
+    conn.close()
+    return {"total": total, "mega": mega, "latest": latest, "date_counts": date_counts}
+
+def load_articles(selected_date):
+    """선택된 날짜 기사만 SQL 레벨에서 필터링해 로드"""
     if not os.path.exists(DB_PATH):
         return pd.DataFrame()
     conn = sqlite3.connect(DB_PATH)
-    query = "SELECT * FROM articles ORDER BY created_at DESC"
-    df = pd.read_sql_query(query, conn)
+    if selected_date == "전체":
+        df = pd.read_sql_query(
+            "SELECT * FROM articles ORDER BY importance_level DESC, date DESC",
+            conn
+        )
+    else:
+        df = pd.read_sql_query(
+            "SELECT * FROM articles WHERE date = ? ORDER BY importance_level DESC, created_at DESC",
+            conn, params=(selected_date,)
+        )
     conn.close()
-    # Google News 리디렉트 URL을 실제 원문 URL로 변환
+    # Google News 리디렉트 URL → 실제 원문 URL (조회된 기사만 디코딩)
     if not df.empty and 'original_url' in df.columns:
         mask = df['original_url'].str.contains('news.google.com', na=False)
         if mask.any():
@@ -247,17 +273,20 @@ def load_data():
 st.markdown('<div class="hero-title">🔥 MBSE HotBoard</div>', unsafe_allow_html=True)
 st.markdown('<div class="hero-subtitle">AI가 매일 수집 · 분석하는 글로벌 방산/항공우주 MBSE 트렌드</div>', unsafe_allow_html=True)
 
-df = load_data()
+# 메타정보 먼저 조회 (전체 기사 없이 날짜/통계만)
+meta = load_metadata()
 
-if df.empty:
+if meta is None or meta["total"] == 0:
     st.warning("아직 수집된 데이터가 없습니다. AI 에이전트를 먼저 실행해주세요.")
     st.stop()
 
-# ── Compact stats bar ──
-total = len(df)
-mega = len(df[df['importance_level'] == 3])
-latest = df['date'].iloc[0] if 'date' in df.columns else '-'
+total = meta["total"]
+mega = meta["mega"]
+latest = meta["latest"]
+date_counts = meta["date_counts"]
+available_dates = sorted(date_counts.keys(), reverse=True)
 
+# ── Compact stats bar ──
 st.markdown(f"""
 <div class="stats-bar">
     <span class="stat"><b>{total}</b>누적</span>
@@ -267,22 +296,21 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ── Date pills (데이터 있는 날짜만 표시) ──
-available_dates = sorted(df['date'].unique(), reverse=True)
-
-# Streamlit의 query_params로 날짜 선택 상태 관리
 params = st.query_params
 today_str = datetime.now().strftime("%Y-%m-%d")
 default_date = today_str if today_str in available_dates else available_dates[0]
 selected_date = params.get("date", default_date)
+# 유효하지 않은 date 파라미터 → 최신 날짜로 폴백
+if selected_date != "전체" and selected_date not in available_dates:
+    selected_date = default_date
 
 date_pills_html = ""
 all_active = "active" if selected_date == "전체" else ""
 date_pills_html += f'<a class="date-pill {all_active}" href="?date=전체">전체 <span class="pill-count">{total}</span></a>'
 
 for d in available_dates:
-    count = len(df[df['date'] == d])
+    count = date_counts.get(d, 0)
     active = "active" if selected_date == d else ""
-    # 날짜 표시 간소화 (MM.DD)
     try:
         short = d[5:].replace("-", ".")
     except:
@@ -300,14 +328,13 @@ with col_search:
 with col_level:
     level_filter = st.selectbox("중요도", ["전체", "🔥🔥🔥 메가트렌드", "🔥🔥 실무", "🔥 일반"], label_visibility="collapsed")
 
+# ── 선택 날짜 기사만 로드 (SQL 필터 — 전체 테이블 로드 없음) ──
+df = load_articles(selected_date)
+
 # ── Apply filters ──
 filtered_df = df.copy()
 
-# 날짜 필터
-if selected_date != "전체" and selected_date in available_dates:
-    filtered_df = filtered_df[filtered_df['date'] == selected_date]
-
-# 검색 필터
+# 검색 필터 (날짜는 SQL에서 이미 처리)
 if search_query:
     filtered_df = filtered_df[
         filtered_df['title_kr'].str.contains(search_query, case=False, na=False) |
