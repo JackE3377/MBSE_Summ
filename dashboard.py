@@ -316,12 +316,7 @@ if selected_date != "전체" and selected_date not in available_dates:
 
 date_pills_html = ""
 all_active = "active" if selected_date == "전체" else ""
-date_pills_html += (
-    f'<a class="date-pill {all_active}" href="javascript:void(0)" '
-    f'onclick="(function(){{var u=new URL(window.parent.location.href);'
-    f'u.searchParams.set(\'date\',\'\uc804\uccb4\');window.parent.location.href=u.toString();}})();">'
-    f'\uc804\uccb4 <span class="pill-count">{total}</span></a>'
-)
+date_pills_html += f'<a class="date-pill {all_active}" href="?date=전체" target="_top">전체 <span class="pill-count">{total}</span></a>'
 
 for d in available_dates:
     count = date_counts.get(d, 0)
@@ -330,12 +325,7 @@ for d in available_dates:
         short = d[5:].replace("-", ".")
     except:
         short = d
-    date_pills_html += (
-        f'<a class="date-pill {active}" href="javascript:void(0)" '
-        f'onclick="(function(){{var u=new URL(window.parent.location.href);'
-        f'u.searchParams.set(\'date\',\'{d}\');window.parent.location.href=u.toString();}})();">'
-        f'{short} <span class="pill-count">{count}</span></a>'
-    )
+    date_pills_html += f'<a class="date-pill {active}" href="?date={d}" target="_top">{short} <span class="pill-count">{count}</span></a>'
 
 st.markdown(f'<div class="date-scroll">{date_pills_html}</div>', unsafe_allow_html=True)
 
