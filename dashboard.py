@@ -26,14 +26,24 @@ header[data-testid="stHeader"] { background: transparent; }
 #MainMenu, footer, .stDeployButton,
 header[data-testid="stHeader"] .stActionButton,
 [data-testid="manage-app-button"],
+[data-testid="stToolbar"],
+[data-testid="stDecoration"],
+[data-testid="stStatusWidget"],
 .viewerBadge_container__r5tak,
 .styles_viewerBadge__CvC9N,
 [class*="viewerBadge"],
 [class*="ViewerBadge"],
-[data-testid="stToolbar"],
-[data-testid="stDecoration"],
-[data-testid="stStatusWidget"] {
+.viewerBadge_link__qRIco,
+[class*="StatusWidget"],
+a[href*="streamlit.io"],
+a[href*="github.com/JackE3377"],
+iframe[src*="github"],
+.stApp > footer,
+.reportview-container .main footer {
     display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
 }
 
 /* Hero */
@@ -78,48 +88,40 @@ header[data-testid="stHeader"] .stActionButton,
     color: #f87171;
 }
 
-/* Date pills */
-.date-scroll {
+/* Date radio pills — Streamlit st.radio 스타일 오버라이드 */
+div[data-testid="stRadio"] > div {
     display: flex;
     gap: 0.5rem;
     overflow-x: auto;
     padding: 0.5rem 0 1rem 0;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    flex-wrap: wrap;
 }
-.date-scroll::-webkit-scrollbar { display: none; }
-.date-pill {
-    flex-shrink: 0;
-    padding: 0.45rem 1rem;
-    border-radius: 999px;
-    font-size: 0.8rem;
-    font-weight: 500;
+div[data-testid="stRadio"] > div::-webkit-scrollbar { display: none; }
+div[data-testid="stRadio"] label {
+    padding: 0.45rem 1rem !important;
+    border-radius: 999px !important;
+    font-size: 0.8rem !important;
+    font-weight: 500 !important;
     cursor: pointer;
-    border: 1px solid rgba(255,255,255,0.1);
-    background: rgba(255,255,255,0.04);
-    color: #a1a1aa;
-    text-decoration: none;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    background: rgba(255,255,255,0.04) !important;
+    color: #a1a1aa !important;
     transition: all 0.2s;
     white-space: nowrap;
 }
-.date-pill:hover {
-    background: rgba(102,126,234,0.15);
-    border-color: rgba(102,126,234,0.4);
-    color: #c4b5fd;
+div[data-testid="stRadio"] label:hover {
+    background: rgba(102,126,234,0.15) !important;
+    border-color: rgba(102,126,234,0.4) !important;
+    color: #c4b5fd !important;
 }
-.date-pill.active {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: #fff;
-    border-color: transparent;
-    font-weight: 600;
-}
-.date-pill .pill-count {
-    display: inline-block;
-    background: rgba(0,0,0,0.25);
-    padding: 0.1rem 0.4rem;
-    border-radius: 999px;
-    font-size: 0.65rem;
-    margin-left: 0.3rem;
+div[data-testid="stRadio"] label[data-checked="true"],
+div[data-testid="stRadio"] label:has(input:checked) {
+    background: linear-gradient(135deg, #667eea, #764ba2) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+    font-weight: 600 !important;
 }
 
 /* Article cards */
@@ -305,29 +307,26 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ── Date pills (데이터 있는 날짜만 표시) ──
-params = st.query_params
+# ── Date pills (Streamlit 네이티브 radio — iframe 안전) ──
 today_str = datetime.now().strftime("%Y-%m-%d")
 default_date = today_str if today_str in available_dates else available_dates[0]
-selected_date = params.get("date", default_date)
-# 유효하지 않은 date 파라미터 → 최신 날짜로 폴백
-if selected_date != "전체" and selected_date not in available_dates:
-    selected_date = default_date
 
-date_pills_html = ""
-all_active = "active" if selected_date == "전체" else ""
-date_pills_html += f'<a class="date-pill {all_active}" href="?date=전체" target="_top">전체 <span class="pill-count">{total}</span></a>'
-
+date_options = ["전체"] + list(available_dates)
+date_labels = {"전체": f"전체 ({total})"}
 for d in available_dates:
-    count = date_counts.get(d, 0)
-    active = "active" if selected_date == d else ""
-    try:
-        short = d[5:].replace("-", ".")
-    except:
-        short = d
-    date_pills_html += f'<a class="date-pill {active}" href="?date={d}" target="_top">{short} <span class="pill-count">{count}</span></a>'
+    short = d[5:].replace("-", ".")
+    date_labels[d] = f"{short} ({date_counts.get(d, 0)})"
 
-st.markdown(f'<div class="date-scroll">{date_pills_html}</div>', unsafe_allow_html=True)
+default_idx = date_options.index(default_date) if default_date in date_options else 0
+
+selected_date = st.radio(
+    "날짜",
+    options=date_options,
+    format_func=lambda x: date_labels.get(x, x),
+    horizontal=True,
+    index=default_idx,
+    label_visibility="collapsed"
+)
 
 st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 
