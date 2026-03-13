@@ -258,9 +258,11 @@ def run_v2_orchestrator():
     
     # Task 2: Pydantic으로 동적 쿼리 응답 생성
     task_evolve = Task(
-        description="이전 Task에서 도출된 최신 중요 기사들을 분석하라. 현재의 MBSE, SysML 트렌드에서 새롭게 떠오르는 기술 스택(예: UAF, Cameo, SysML v2 API)이나 특정 국방 프로젝트명이 등장했다면 이를 구글 뉴스 검색이 가능한 검색어 쿼리(예: 'SysML v2' OR 'API')로 1~2개 만들어라.\n\n"
-                    "⚠️ 중요 규칙: 특정 기업명(RTX, Boeing, Lockheed 등)이나 기업 고유 프로젝트명(LTAMDS, JPALS 등)을 쿼리에 넣지 마라. "
-                    "기업별 수집은 이미 site_queries가 담당한다. 동적 쿼리는 반드시 범용 기술 트렌드 키워드(예: Digital Thread, MOSA, SysML v2)로만 구성하라.",
+        description="이전 Task에서 도출된 최신 중요 기사들을 분석하라. 현재의 MBSE, SysML 트렌드에서 새롭게 떠오르는 기술 스택(예: UAF(Unified Architecture Framework), Cameo, SysML v2 API)이나 특정 국방 프로젝트명이 등장했다면 이를 구글 뉴스 검색이 가능한 검색어 쿼리(예: 'SysML v2' OR 'API')로 1~2개 만들어라.\n\n"
+                    "⚠️ 중요 규칙:\n"
+                    "1) 특정 기업명(RTX, Boeing, Lockheed 등)이나 기업 고유 프로젝트명(LTAMDS, JPALS 등)을 쿼리에 넣지 마라. 기업별 수집은 이미 site_queries가 담당한다.\n"
+                    "2) UAF는 반드시 MBSE 문맥의 Unified Architecture Framework를 의미한다. 우크라이나 군(Ukrainian Armed Forces) 관련 기사는 MBSE와 무관하므로 반드시 제외하라. UAF 관련 쿼리 생성 시 반드시 'UAF \"Unified Architecture Framework\"' 형태로 작성하라.\n"
+                    "3) 동적 쿼리는 반드시 범용 기술 트렌드 키워드(예: Digital Thread, MOSA, SysML v2)로만 구성하라.",
         expected_output="`DynamicQueryUpdate` JSON 스키마 구조로 된 신규 트렌드 쿼리 목록",
         agent=trend_analyzer,
         output_pydantic=DynamicQueryUpdate

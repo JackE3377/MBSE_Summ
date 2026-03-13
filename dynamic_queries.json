@@ -11,7 +11,7 @@
         "\"SysML v2\" OR \"Digital Thread\"",
         "\"MOSA\" AND \"Modular Open Systems Approach\"",
         "\"MOSA\" OR \"Sensor Fusion\"",
-        "\"SysML v2\" OR \"UAF\"",
+        "\"SysML v2\" OR (UAF \"Unified Architecture Framework\")",
         "'Model Based Manufacturing' OR 'MBM' MBSE"
     ],
     "dynamic_site_queries": {}

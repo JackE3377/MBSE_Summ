@@ -219,6 +219,16 @@ header[data-testid="stHeader"] .stActionButton,
 </style>
 """, unsafe_allow_html=True)
 
+import re as _re
+
+def _linkify(text: str) -> str:
+    """insight 텍스트 내 raw URL을 클릭 가능한 하이퍼링크로 변환"""
+    return _re.sub(
+        r'(https?://[^\s\)\]>\'",]+)',
+        r'<a class="article-link" href="\1" target="_blank" style="font-style:normal">🔗 링크</a>',
+        text
+    )
+
 def load_metadata():
     """날짜 메타정보만 조회 — 전체 기사 로드 없이 첫 화면 빠른 렌더링"""
     if not os.path.exists(DB_PATH):
@@ -371,7 +381,7 @@ for _, row in filtered_df.iterrows():
             <strong>2.</strong> {row['summary_2']}<br/>
             <strong>3.</strong> {row['summary_3']}
         </div>
-        <div class="article-insight">💡 {row['insight']}</div>
+        <div class="article-insight">💡 {_linkify(str(row['insight']))}</div>
         <a class="article-link" href="{row['original_url']}" target="_blank">원문 보기 →</a>
     </div>
     """
