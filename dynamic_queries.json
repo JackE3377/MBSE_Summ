@@ -1,16 +1,18 @@
 {
     "dynamic_keywords": [],
     "dynamic_keyword_queries": [
-        "\"MOSA\" OR \"Open Systems Architecture\"",
-        "MOSA MBSE",
+        "\"Digital Thread\" AND \"Architecture\"",
         "\"Digital Thread\" AND \"AI\"",
-        "'Model Based Manufacturing' OR 'MBM' MBSE",
-        "MOSA OR 'Modular Open Systems Approach'",
-        "'Digital Thread' AND 'MBSE' AND 'PLM'",
+        "\"MOSA\" OR \"Open Systems Architecture\"",
+        "'SysML v2' AND ('API' OR 'Interoperability')",
         "\"Digital Thread\" AND \"MBSE\"",
-        "Digital Engineering OR 'MBSE integration'",
+        "MOSA MBSE",
+        "'Digital Thread' AND 'MBSE' AND 'PLM'",
+        "\"SysML v2\" OR \"Digital Thread\"",
+        "\"MOSA\" AND \"Modular Open Systems Approach\"",
+        "\"MOSA\" OR \"Sensor Fusion\"",
         "\"SysML v2\" OR \"UAF\"",
-        "'SysML v2' AND ('API' OR 'Interoperability')"
+        "'Model Based Manufacturing' OR 'MBM' MBSE"
     ],
     "dynamic_site_queries": {}
 }
