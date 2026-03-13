@@ -27,7 +27,12 @@ header[data-testid="stHeader"] { background: transparent; }
 header[data-testid="stHeader"] .stActionButton,
 [data-testid="manage-app-button"],
 .viewerBadge_container__r5tak,
-.styles_viewerBadge__CvC9N {
+.styles_viewerBadge__CvC9N,
+[class*="viewerBadge"],
+[class*="ViewerBadge"],
+[data-testid="stToolbar"],
+[data-testid="stDecoration"],
+[data-testid="stStatusWidget"] {
     display: none !important;
 }
 

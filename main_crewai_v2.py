@@ -359,5 +359,22 @@ def run_v2_orchestrator():
     with open(HISTORY_FILE, "w", encoding="utf-8") as f:
         f.write("\n".join(list(history)))
 
+    # Streamlit Cloud 자동 반영: DB + 동적 쿼리 git push
+    try:
+        import subprocess
+        today_tag = datetime.now().strftime('%Y-%m-%d')
+        subprocess.run(['git', 'add', 'mbse_history.db', 'dynamic_queries.json'], check=True)
+        result = subprocess.run(
+            ['git', 'commit', '-m', f'Auto-sync: DB + queries ({today_tag})'],
+            capture_output=True, text=True
+        )
+        if 'nothing to commit' not in result.stdout:
+            subprocess.run(['git', 'push'], check=True)
+            print('✅ Git push 완료 — Streamlit Cloud에 자동 반영됩니다.')
+        else:
+            print('ℹ️ 변경 없음 — git push 생략.')
+    except Exception as e:
+        print(f'⚠️ Git push 실패 (수동으로 push 필요): {e}')
+
 if __name__ == "__main__":
     run_v2_orchestrator()
