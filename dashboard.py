@@ -88,40 +88,18 @@ iframe[src*="github"],
     color: #f87171;
 }
 
-/* Date radio pills — Streamlit st.radio 스타일 오버라이드 */
-div[data-testid="stRadio"] > div {
-    display: flex;
-    gap: 0.5rem;
-    overflow-x: auto;
-    padding: 0.5rem 0 1rem 0;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    flex-wrap: wrap;
+/* Date input 다크 테마 */
+.stDateInput > div > div > input {
+    background: rgba(255,255,255,0.05) !important;
+    border: 1px solid rgba(255,255,255,0.15) !important;
+    border-radius: 12px !important;
+    color: #e4e4e7 !important;
+    font-family: 'Inter', sans-serif !important;
 }
-div[data-testid="stRadio"] > div::-webkit-scrollbar { display: none; }
-div[data-testid="stRadio"] label {
-    padding: 0.45rem 1rem !important;
-    border-radius: 999px !important;
-    font-size: 0.8rem !important;
-    font-weight: 500 !important;
-    cursor: pointer;
-    border: 1px solid rgba(255,255,255,0.1) !important;
-    background: rgba(255,255,255,0.04) !important;
+/* Checkbox 다크 테마 */
+.stCheckbox label span {
     color: #a1a1aa !important;
-    transition: all 0.2s;
-    white-space: nowrap;
-}
-div[data-testid="stRadio"] label:hover {
-    background: rgba(102,126,234,0.15) !important;
-    border-color: rgba(102,126,234,0.4) !important;
-    color: #c4b5fd !important;
-}
-div[data-testid="stRadio"] label[data-checked="true"],
-div[data-testid="stRadio"] label:has(input:checked) {
-    background: linear-gradient(135deg, #667eea, #764ba2) !important;
-    color: #fff !important;
-    border-color: transparent !important;
-    font-weight: 600 !important;
+    font-size: 0.85rem !important;
 }
 
 /* Article cards */
@@ -307,26 +285,28 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ── Date pills (Streamlit 네이티브 radio — iframe 안전) ──
+# ── Date picker (캘린더) ──
 today_str = datetime.now().strftime("%Y-%m-%d")
 default_date = today_str if today_str in available_dates else available_dates[0]
 
-date_options = ["전체"] + list(available_dates)
-date_labels = {"전체": f"전체 ({total})"}
-for d in available_dates:
-    short = d[5:].replace("-", ".")
-    date_labels[d] = f"{short} ({date_counts.get(d, 0)})"
+col_cal, col_all = st.columns([3, 1])
+with col_cal:
+    picked = st.date_input(
+        "날짜 선택",
+        value=datetime.strptime(default_date, "%Y-%m-%d").date(),
+        min_value=datetime.strptime(available_dates[-1], "%Y-%m-%d").date(),
+        max_value=datetime.now().date(),
+        label_visibility="collapsed"
+    )
+with col_all:
+    show_all = st.checkbox(f"전체 ({total})", value=False)
 
-default_idx = date_options.index(default_date) if default_date in date_options else 0
+selected_date = "전체" if show_all else picked.isoformat()
 
-selected_date = st.radio(
-    "날짜",
-    options=date_options,
-    format_func=lambda x: date_labels.get(x, x),
-    horizontal=True,
-    index=default_idx,
-    label_visibility="collapsed"
-)
+if selected_date != "전체":
+    cnt = date_counts.get(selected_date, 0)
+    if cnt == 0:
+        st.info(f"{selected_date}에 수집된 기사가 없습니다.")
 
 st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 
