@@ -36,9 +36,18 @@ def insert_article(date, title_kr, importance_level, summary_1, summary_2, summa
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT OR IGNORE INTO articles 
+            INSERT INTO articles 
             (date, title_kr, importance_level, summary_1, summary_2, summary_3, insight, original_url, source_type)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(original_url) DO UPDATE SET
+                date = excluded.date,
+                title_kr = excluded.title_kr,
+                importance_level = excluded.importance_level,
+                summary_1 = excluded.summary_1,
+                summary_2 = excluded.summary_2,
+                summary_3 = excluded.summary_3,
+                insight = excluded.insight,
+                source_type = excluded.source_type
         ''', (date, title_kr, importance_level, summary_1, summary_2, summary_3, insight, original_url, source_type))
         conn.commit()
         conn.close()
