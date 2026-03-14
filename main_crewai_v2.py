@@ -95,24 +95,46 @@ def get_combined_queries():
 
 def resolve_google_news_url(google_url: str) -> str:
     """Google News 리디렉트 URL을 실제 원문 URL로 변환.
-    디코딩 결과가 도메인만(경로 없음)이면 원본 Google News URL을 보존한다.
-    (브라우저에서 Google News URL을 열면 자동 리디렉트됨)"""
+    1차: googlenewsdecoder 라이브러리 시도
+    2차: HTTP 리디렉트 추적 (가장 확실)
+    최종: 원본 Google News URL 보존 (브라우저에서 자동 리디렉트)"""
     if not google_url or 'news.google.com' not in google_url:
         return google_url
+
+    from urllib.parse import urlparse
+
+    def _is_valid_article_url(url: str) -> bool:
+        """디코딩된 URL이 실제 기사 URL인지 검증 (도메인만이면 False)"""
+        parsed = urlparse(url)
+        path = parsed.path.rstrip('/')
+        return bool(path) and 'news.google.com' not in url and 'consent.google' not in url
+
+    # 1차: googlenewsdecoder
     try:
         from googlenewsdecoder import new_decoderv1
         result = new_decoderv1(google_url)
         if result.get('status') and result.get('decoded_url'):
             decoded = result['decoded_url']
-            # 디코딩 결과가 도메인만(경로 없음)이면 → 원본 URL 보존
-            from urllib.parse import urlparse
-            path = urlparse(decoded).path.rstrip('/')
-            if not path or path == '':
-                print(f"  ⚠️ 디코딩 결과가 도메인만: {decoded} → 원본 URL 보존")
-                return google_url
-            return decoded
+            if _is_valid_article_url(decoded):
+                return decoded
+            print(f"  ⚠️ decoder 결과 부적합: {decoded}")
     except Exception:
         pass
+
+    # 2차: HTTP 리디렉트 추적
+    try:
+        resp = requests.get(
+            google_url,
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"},
+            timeout=10,
+            allow_redirects=True
+        )
+        if _is_valid_article_url(resp.url):
+            return resp.url
+    except Exception:
+        pass
+
+    # 최종: 원본 URL 보존 (브라우저가 리디렉트)
     return google_url
 
 def fetch_google_news_rss(query: str, cutoff_date: datetime) -> list[dict]:

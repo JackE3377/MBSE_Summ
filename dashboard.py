@@ -248,26 +248,44 @@ def load_articles(selected_date):
             conn, params=(selected_date,)
         )
     conn.close()
-    # Google News 리디렉트 URL → 실제 원문 URL (조회된 기사만 디코딩)
+    # Google News 리디렉트 URL → 실제 원문 URL (2단계 해석: decoder + HTTP 리디렉트)
     if not df.empty and 'original_url' in df.columns:
         mask = df['original_url'].str.contains('news.google.com', na=False)
         if mask.any():
+            from urllib.parse import urlparse as _urlparse
             try:
                 from googlenewsdecoder import new_decoderv1
-                from urllib.parse import urlparse as _urlparse
-                for idx in df[mask].index:
+            except ImportError:
+                new_decoderv1 = None
+            for idx in df[mask].index:
+                resolved = False
+                # 1차: googlenewsdecoder
+                if new_decoderv1:
                     try:
                         result = new_decoderv1(df.at[idx, 'original_url'])
                         if result.get('status') and result.get('decoded_url'):
                             decoded = result['decoded_url']
                             path = _urlparse(decoded).path.rstrip('/')
-                            if path and path != '':
+                            if path and 'news.google.com' not in decoded and 'consent.google' not in decoded:
                                 df.at[idx, 'original_url'] = decoded
-                            # 도메인만이면 Google News URL 유지 (브라우저 자동 리디렉트)
+                                resolved = True
                     except Exception:
                         pass
-            except ImportError:
-                pass
+                # 2차: HTTP 리디렉트 추적
+                if not resolved:
+                    try:
+                        import requests as _req
+                        resp = _req.get(
+                            df.at[idx, 'original_url'],
+                            headers={"User-Agent": "Mozilla/5.0"},
+                            timeout=10,
+                            allow_redirects=True
+                        )
+                        path = _urlparse(resp.url).path.rstrip('/')
+                        if path and 'news.google.com' not in resp.url and 'consent.google' not in resp.url:
+                            df.at[idx, 'original_url'] = resp.url
+                    except Exception:
+                        pass
     return df
 
 # ── Hero ──
