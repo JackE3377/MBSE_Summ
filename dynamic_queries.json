@@ -1,22 +1,24 @@
 {
     "dynamic_keywords": [],
     "dynamic_keyword_queries": [
-        "'SysML v2' AND ('API' OR 'Interoperability')",
-        "'Digital Thread' AND 'MBSE' AND 'PLM'",
-        "\"MOSA\" AND \"Modular Open Systems Approach\"",
-        "\"Digital Thread\" AND \"MBSE\"",
-        "\"Digital Thread\" AND \"AI\"",
-        "\"SysML v2\" OR \"Digital Thread\"",
-        "'Model Based Manufacturing' OR 'MBM' MBSE",
-        "\"SysML v2\" OR (UAF \"Unified Architecture Framework\")",
-        "\"MOSA\" OR \"Sensor Fusion\"",
-        "\"Digital Thread\" AND \"Architecture\"",
-        "\"Digital Thread\" AND \"AI Agent\" AND \"Defense\"",
         "\"MOSA\" AND \"Open Architecture\" AND \"Defense\"",
+        "\"UAF\" \"Unified Architecture Framework\" AND \"MOSA\"",
+        "\"SysML v2\" OR (UAF \"Unified Architecture Framework\")",
+        "\"Digital Thread\" AND \"AI Agent\" AND \"Defense\"",
+        "'Digital Thread' AND 'MBSE' AND 'PLM'",
+        "MOSA MBSE",
         "\"SysML v2\" AND \"Digital Twin\" AND \"Architecture\"",
+        "'Model Based Manufacturing' OR 'MBM' MBSE",
         "\"MOSA\" OR \"Open Systems Architecture\"",
+        "\"Digital Thread\" AND \"MBSE\"",
+        "\"MOSA\" OR \"Sensor Fusion\"",
+        "\"SysML v2\" AND \"Digital Thread\"",
+        "'SysML v2' AND ('API' OR 'Interoperability')",
+        "\"SysML v2\" OR \"Digital Thread\"",
+        "\"Digital Thread\" AND \"Architecture\"",
         "\"UAF\" \"Unified Architecture Framework\" AND \"System Integration\"",
-        "MOSA MBSE"
+        "\"Digital Thread\" AND \"AI\"",
+        "\"MOSA\" AND \"Modular Open Systems Approach\""
     ],
     "dynamic_site_queries": {}
 }
