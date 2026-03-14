@@ -19,21 +19,27 @@ def init_db():
             summary_3 TEXT,
             insight TEXT,
             original_url TEXT UNIQUE,
+            source_type TEXT DEFAULT 'news',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    # 기존 DB에 source_type 컬럼이 없으면 추가 (마이그레이션)
+    try:
+        cursor.execute("SELECT source_type FROM articles LIMIT 1")
+    except sqlite3.OperationalError:
+        cursor.execute("ALTER TABLE articles ADD COLUMN source_type TEXT DEFAULT 'news'")
     conn.commit()
     conn.close()
 
-def insert_article(date, title_kr, importance_level, summary_1, summary_2, summary_3, insight, original_url):
+def insert_article(date, title_kr, importance_level, summary_1, summary_2, summary_3, insight, original_url, source_type='news'):
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute('''
             INSERT OR IGNORE INTO articles 
-            (date, title_kr, importance_level, summary_1, summary_2, summary_3, insight, original_url)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (date, title_kr, importance_level, summary_1, summary_2, summary_3, insight, original_url))
+            (date, title_kr, importance_level, summary_1, summary_2, summary_3, insight, original_url, source_type)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (date, title_kr, importance_level, summary_1, summary_2, summary_3, insight, original_url, source_type))
         conn.commit()
         conn.close()
     except Exception as e:

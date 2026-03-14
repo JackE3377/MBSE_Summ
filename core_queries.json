@@ -18,5 +18,12 @@
         "RTX/Raytheon": "site:rtx.com MBSE OR \"digital engineering\" OR \"digital twin\" OR \"model-based\"",
         "L3Harris": "site:l3harris.com MBSE OR \"digital engineering\" OR \"digital twin\"",
         "INCOSE": "site:incose.org MBSE OR SysML OR \"systems engineering\""
-    }
+    },
+    "paper_queries": [
+        "Model-Based Systems Engineering",
+        "SysML v2",
+        "Digital Engineering systems architecture",
+        "MBSE digital twin aerospace",
+        "Unified Architecture Framework UAF"
+    ]
 }

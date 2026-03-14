@@ -172,6 +172,7 @@ iframe[src*="github"],
 .badge-3 { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
 .badge-2 { background: rgba(251,191,36,0.12); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
 .badge-1 { background: rgba(96,165,250,0.12); color: #60a5fa; border: 1px solid rgba(96,165,250,0.3); }
+.badge-paper { background: rgba(52,211,153,0.12); color: #34d399; border: 1px solid rgba(52,211,153,0.3); margin-left: 0.4rem; }
 
 /* Streamlit inputs */
 .stTextInput > div > div > input {
@@ -219,12 +220,17 @@ def load_metadata():
     total = cursor.fetchone()[0]
     cursor.execute("SELECT COUNT(*) FROM articles WHERE importance_level = 3")
     mega = cursor.fetchone()[0]
+    try:
+        cursor.execute("SELECT COUNT(*) FROM articles WHERE source_type = 'paper'")
+        papers = cursor.fetchone()[0]
+    except Exception:
+        papers = 0
     cursor.execute("SELECT MAX(date) FROM articles")
     latest = cursor.fetchone()[0] or '-'
     cursor.execute("SELECT date, COUNT(*) FROM articles GROUP BY date ORDER BY date DESC")
     date_counts = dict(cursor.fetchall())
     conn.close()
-    return {"total": total, "mega": mega, "latest": latest, "date_counts": date_counts}
+    return {"total": total, "mega": mega, "papers": papers, "latest": latest, "date_counts": date_counts}
 
 def load_articles(selected_date):
     """선택된 날짜 기사만 SQL 레벨에서 필터링해 로드"""
@@ -272,6 +278,7 @@ if meta is None or meta["total"] == 0:
 
 total = meta["total"]
 mega = meta["mega"]
+papers = meta.get("papers", 0)
 latest = meta["latest"]
 date_counts = meta["date_counts"]
 available_dates = sorted(date_counts.keys(), reverse=True)
@@ -281,6 +288,7 @@ st.markdown(f"""
 <div class="stats-bar">
     <span class="stat"><b>{total}</b>누적</span>
     <span class="stat mega"><b>{mega}</b>🔥 메가트렌드</span>
+    <span class="stat"><b>{papers}</b>🎓 논문</span>
     <span class="stat"><b>{latest}</b>최근 수집</span>
 </div>
 """, unsafe_allow_html=True)
@@ -311,11 +319,13 @@ if selected_date != "전체":
 st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 
 # ── Filters ──
-col_search, col_level = st.columns([3, 1])
+col_search, col_level, col_source = st.columns([3, 1, 1])
 with col_search:
     search_query = st.text_input("🔍 검색", placeholder="Boeing, SysML, Digital Twin ...", label_visibility="collapsed")
 with col_level:
     level_filter = st.selectbox("중요도", ["전체", "🔥🔥🔥 메가트렌드", "🔥🔥 실무", "🔥 일반"], label_visibility="collapsed")
+with col_source:
+    source_filter = st.selectbox("유형", ["전체", "📰 뉴스", "🎓 논문"], label_visibility="collapsed")
 
 # ── 선택 날짜 기사만 로드 (SQL 필터 — 전체 테이블 로드 없음) ──
 df = load_articles(selected_date)
@@ -336,6 +346,11 @@ level_map = {"🔥🔥🔥 메가트렌드": 3, "🔥🔥 실무": 2, "🔥 일�
 if level_filter in level_map:
     filtered_df = filtered_df[filtered_df['importance_level'] == level_map[level_filter]]
 
+# 소스 유형 필터 (뉴스 / 논문)
+source_type_map = {"📰 뉴스": "news", "🎓 논문": "paper"}
+if source_filter in source_type_map and 'source_type' in filtered_df.columns:
+    filtered_df = filtered_df[filtered_df['source_type'] == source_type_map[source_filter]]
+
 # 중요도 기준 정렬 (MEGA TREND 먼저)
 filtered_df = filtered_df.sort_values(by=['importance_level', 'date'], ascending=[False, False])
 
@@ -347,12 +362,17 @@ for _, row in filtered_df.iterrows():
     badge_class = f"badge-{lvl}"
     badge_labels = {3: "MEGA TREND", 2: "PRACTICAL", 1: "GENERAL"}
     badge_text = badge_labels.get(lvl, "")
+    
+    # 논문 배지
+    is_paper = row.get('source_type', 'news') == 'paper' if 'source_type' in row.index else False
+    paper_badge = '<span class="badge badge-paper">🎓 PAPER</span>' if is_paper else ''
+    link_label = '논문 보기 →' if is_paper else '원문 보기 →'
 
     card_html = f"""
     <div class="article-card">
         <div class="article-header">
             <span class="article-date">{row['date']}</span>
-            <span class="badge {badge_class}">{badge_text}</span>
+            <span><span class="badge {badge_class}">{badge_text}</span>{paper_badge}</span>
         </div>
         <div class="article-title">{row['title_kr']}</div>
         <div class="article-summary">
@@ -361,7 +381,7 @@ for _, row in filtered_df.iterrows():
             <strong>3.</strong> {row['summary_3']}
         </div>
         <div class="article-insight">💡 {_linkify(str(row['insight']))}</div>
-        <a class="article-link" href="{row['original_url']}" target="_blank">원문 보기 →</a>
+        <a class="article-link" href="{row['original_url']}" target="_blank">{link_label}</a>
     </div>
     """
     st.markdown(card_html, unsafe_allow_html=True)

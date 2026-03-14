@@ -58,6 +58,7 @@ class ArticleSummary(BaseModel):
     summary_3: str = Field(..., description="3번째 줄 요약: 시스템/아키텍처 관점에서의 핵심 목표 및 성과 분석")
     insight: str = Field(..., description="실무 적용 인사이트 한 줄 (💡 파급력). 문서 상단의 [과거 연관 데이터베이스] 목록과 연관된 내용이 있다면 반드시 '[과거 기사 제목](원문링크)' 처럼 마크다운 하이퍼링크를 넣어 연속성을 서술할 것.")
     original_url: str = Field(..., description="기사 원문 URL")
+    source_type: str = Field(default="news", description="소스 유형: 'news'(뉴스기사) 또는 'paper'(학술논문)")
 
 class BriefingOutput(BaseModel):
     """최종 브리핑 출력 전체 구조체"""
@@ -81,15 +82,16 @@ def load_json(filepath: str, default_data: dict) -> dict:
     return default_data
 
 def get_combined_queries():
-    core = load_json(CORE_QUERIES_FILE, {"keywords":[], "keyword_queries":[], "site_queries":{}})
+    core = load_json(CORE_QUERIES_FILE, {"keywords":[], "keyword_queries":[], "site_queries":{}, "paper_queries":[]})
     dyn = load_json(DYNAMIC_QUERIES_FILE, {"dynamic_keywords":[], "dynamic_keyword_queries":[]})
     
     keywords = core.get("keywords", []) + dyn.get("dynamic_keywords", [])
     queries = core.get("keyword_queries", []) + dyn.get("dynamic_keyword_queries", [])
     site_queries_list = list(core.get("site_queries", {}).values())
+    paper_queries = core.get("paper_queries", [])
     
     # 중복 제거
-    return list(set(keywords)), list(set(queries + site_queries_list))
+    return list(set(keywords)), list(set(queries + site_queries_list)), paper_queries
 
 def resolve_google_news_url(google_url: str) -> str:
     """Google News 리디렉트 URL을 실제 원문 URL로 변환"""
@@ -146,10 +148,90 @@ def fetch_article_text(url: str, max_chars=3000):
         resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
         soup = BeautifulSoup(resp.text, "html.parser")
         for tag in soup(["script", "style", "nav", "header", "footer"]): tag.decompose()
-        # [TODO: PDF 파싱 모듈 추후 연동 지점]
         return soup.get_text(separator="\n", strip=True)[:max_chars]
     except Exception:
         return ""
+
+# [3-2. 학술 논문 수집 모듈 (arXiv + Semantic Scholar)]
+
+def fetch_arxiv_papers(query: str, max_results: int = 5) -> list[dict]:
+    """arXiv API로 MBSE 관련 논문 검색 (Abstract 기반 — PDF 다운로드 불필요)"""
+    encoded = quote_plus(query)
+    url = f"http://export.arxiv.org/api/query?search_query=all:{encoded}&start=0&max_results={max_results}&sortBy=submittedDate&sortOrder=descending"
+    papers = []
+    try:
+        resp = requests.get(url, timeout=15)
+        resp.raise_for_status()
+        ns = {'atom': 'http://www.w3.org/2005/Atom'}
+        root = ET.fromstring(resp.content)
+        for entry in root.findall('atom:entry', ns):
+            title = (entry.findtext('atom:title', '', ns) or '').strip().replace('\n', ' ')
+            abstract = (entry.findtext('atom:summary', '', ns) or '').strip().replace('\n', ' ')
+            link_el = entry.find("atom:link[@type='text/html']", ns)
+            link = link_el.get('href', '') if link_el is not None else ''
+            published = (entry.findtext('atom:published', '', ns) or '')[:10]  # YYYY-MM-DD
+            authors = [a.findtext('atom:name', '', ns) for a in entry.findall('atom:author', ns)]
+            
+            if not title or not abstract:
+                continue
+            papers.append({
+                'title': title,
+                'url': link,
+                'desc': abstract[:500],
+                'full_text': abstract,
+                'source': 'arXiv',
+                'source_url': 'https://arxiv.org',
+                'source_type': 'paper',
+                'authors': ', '.join(authors[:3]),
+                'published': published
+            })
+    except Exception as e:
+        print(f"⚠️ arXiv 검색 실패 ({query[:30]}...): {e}")
+    return papers
+
+def fetch_semantic_scholar(query: str, max_results: int = 5) -> list[dict]:
+    """Semantic Scholar API로 MBSE 관련 논문 검색 (TLDR + Abstract 제공)"""
+    url = "https://api.semanticscholar.org/graph/v1/paper/search"
+    params = {
+        'query': query,
+        'limit': max_results,
+        'fields': 'title,abstract,url,year,authors,citationCount,tldr',
+        'sort': 'relevance'
+    }
+    papers = []
+    try:
+        resp = requests.get(url, params=params, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+        for p in data.get('data', []):
+            title = (p.get('title') or '').strip()
+            abstract = (p.get('abstract') or '').strip()
+            tldr = ''
+            if p.get('tldr') and p['tldr'].get('text'):
+                tldr = p['tldr']['text']
+            paper_url = p.get('url', '')
+            year = p.get('year', '')
+            authors = [a.get('name', '') for a in (p.get('authors') or [])[:3]]
+            citations = p.get('citationCount', 0)
+            
+            desc_text = tldr if tldr else (abstract[:500] if abstract else '')
+            if not title or not desc_text:
+                continue
+            papers.append({
+                'title': title,
+                'url': paper_url,
+                'desc': desc_text,
+                'full_text': abstract or desc_text,
+                'source': 'Semantic Scholar',
+                'source_url': 'https://semanticscholar.org',
+                'source_type': 'paper',
+                'authors': ', '.join(authors),
+                'published': str(year) if year else '',
+                'citations': citations
+            })
+    except Exception as e:
+        print(f"⚠️ Semantic Scholar 검색 실패 ({query[:30]}...): {e}")
+    return papers
 
 # [4. History 관리]
 def load_history():
@@ -185,25 +267,42 @@ def run_v2_orchestrator():
     print("======================================================")
     
     history = load_history()
-    keywords, queries = get_combined_queries()
+    keywords, queries, paper_queries = get_combined_queries()
     
-    print(f"📡 [Phase 1] 동적/코어 쿼리 병합 (총 {len(queries)}개 쿼리 실행) ...")
+    print(f"📡 [Phase 1] 동적/코어 쿼리 병합 (총 {len(queries)}개 뉴스 쿼리 + {len(paper_queries)}개 논문 쿼리) ...")
     cutoff = datetime.now(timezone.utc) - timedelta(days=7)
     
-    # 본문 추출 수집
+    # 뉴스 기사 수집
     raw_articles = []
     for q in queries:
         raw_articles.extend(fetch_google_news_rss(q, cutoff))
+    
+    # 뉴스 기사에 source_type 태깅
+    for a in raw_articles:
+        a['source_type'] = 'news'
+    
+    # [Phase 1.5] 학술 논문 수집 (arXiv + Semantic Scholar)
+    print(f"\n📚 [Phase 1.5] 학술 논문 수집 ({len(paper_queries)}개 쿼리) ...")
+    raw_papers = []
+    for pq in paper_queries:
+        raw_papers.extend(fetch_arxiv_papers(pq, max_results=3))
+        raw_papers.extend(fetch_semantic_scholar(pq, max_results=3))
+    print(f"📄 논문 수집 완료: {len(raw_papers)}건")
+    
+    # 뉴스 + 논문 통합
+    all_raw = raw_articles + raw_papers
         
     unique_arts = []
     seen = set()
-    for a in raw_articles:
+    for a in all_raw:
         h = make_hash(a['url'], a['title'])
         if h not in seen and h not in history:
             seen.add(h)
             unique_arts.append(a)
             
-    print(f"📊 수집 완료: 중복 제외 신규 기사 {len(unique_arts)}건")
+    news_count = sum(1 for a in unique_arts if a.get('source_type') != 'paper')
+    paper_count = sum(1 for a in unique_arts if a.get('source_type') == 'paper')
+    print(f"📊 수집 완료: 중복 제외 신규 {len(unique_arts)}건 (뉴스 {news_count} + 논문 {paper_count})")
     if not unique_arts:
         print("📭 신규 기사 없음.")
         return
@@ -229,10 +328,11 @@ def run_v2_orchestrator():
     
     print(f"⚖️ 소스 균형 조정 후: {len(balanced_arts)}건 (원본 {len(unique_arts)}건)")
     
-    # 상위 10건(속도 조절) 본문 추출
+    # 상위 10건(속도 조절) 본문 추출 (논문은 이미 full_text 보유)
     target_arts = balanced_arts[:10]
     for a in target_arts:
-        a['full_text'] = fetch_article_text(a['url'])
+        if a.get('source_type') != 'paper' and not a.get('full_text'):
+            a['full_text'] = fetch_article_text(a['url'])
         history.add(make_hash(a['url'], a['title']))
         
     articles_payload = json.dumps(target_arts, ensure_ascii=False)
@@ -242,14 +342,16 @@ def run_v2_orchestrator():
     
     # RAG Context 준비
     rag_context = database.build_rag_context(articles_payload)
-    eval_text = f"{rag_context}\n\n[오늘 수집된 최신 기사 목록]\n{articles_payload[:18000]}"
+    eval_text = f"{rag_context}\n\n[오늘 수집된 최신 기사 및 논문 목록]\n{articles_payload[:18000]}"
 
     print("\n🤖 [Phase 2] CrewAI Pydantic 기반 평가 및 쿼리 발전 구조 진입")
 
     # Task 1: Pydantic으로 엄격한 3줄 요약 구조화
     task_evaluate = Task(
         description=f"다음 텍스트 형태의 수집 목록과 과거 데이터베이스를 읽어라:\n\n{eval_text}\n\n"
-                    f"스팸이나 단순 직무 공고는 무시하고, 기술 동향 및 메가트렌드를 담은 최고 수준의 기사만 골라 정리하라.\n"
+                    f"스팸이나 단순 직무 공고는 무시하고, 기술 동향 및 메가트렌드를 담은 최고 수준의 기사/논문만 골라 정리하라.\n"
+                    f"학술 논문(source_type='paper')의 경우, 제목 앞에 [논문] 태그를 붙이고, source_type은 반드시 'paper'로 설정하라.\n"
+                    f"뉴스 기사(source_type='news')의 경우, source_type을 'news'로 설정하라.\n"
                     f"인사이트를 작성할 때 과거 DB의 내용과 연결된다면, 과거 링크를 참조문헌처럼 하이퍼링크로 꼭 작성하라.",
         expected_output="엄격한 `BriefingOutput` JSON 스키마 구조로 맵핑된 결과",
         agent=chief_evaluator,
@@ -308,6 +410,7 @@ def run_v2_orchestrator():
             text_out += f"{'-'*40}\n"
             
             # DB 저장 연동
+            source_type = getattr(art, 'source_type', 'news') or 'news'
             database.insert_article(
                 date=final_briefing_obj.date,
                 title_kr=art.title_kr,
@@ -316,7 +419,8 @@ def run_v2_orchestrator():
                 summary_2=art.summary_2,
                 summary_3=art.summary_3,
                 insight=art.insight,
-                original_url=art.original_url
+                original_url=art.original_url,
+                source_type=source_type
             )
             
         text_out += "\n🤖 [자가진화(Self-Evolving) 알림]\n"
