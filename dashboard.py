@@ -254,11 +254,16 @@ def load_articles(selected_date):
         if mask.any():
             try:
                 from googlenewsdecoder import new_decoderv1
+                from urllib.parse import urlparse as _urlparse
                 for idx in df[mask].index:
                     try:
                         result = new_decoderv1(df.at[idx, 'original_url'])
                         if result.get('status') and result.get('decoded_url'):
-                            df.at[idx, 'original_url'] = result['decoded_url']
+                            decoded = result['decoded_url']
+                            path = _urlparse(decoded).path.rstrip('/')
+                            if path and path != '':
+                                df.at[idx, 'original_url'] = decoded
+                            # 도메인만이면 Google News URL 유지 (브라우저 자동 리디렉트)
                     except Exception:
                         pass
             except ImportError:

@@ -94,14 +94,23 @@ def get_combined_queries():
     return list(set(keywords)), list(set(queries + site_queries_list)), paper_queries
 
 def resolve_google_news_url(google_url: str) -> str:
-    """Google News 리디렉트 URL을 실제 원문 URL로 변환"""
+    """Google News 리디렉트 URL을 실제 원문 URL로 변환.
+    디코딩 결과가 도메인만(경로 없음)이면 원본 Google News URL을 보존한다.
+    (브라우저에서 Google News URL을 열면 자동 리디렉트됨)"""
     if not google_url or 'news.google.com' not in google_url:
         return google_url
     try:
         from googlenewsdecoder import new_decoderv1
         result = new_decoderv1(google_url)
         if result.get('status') and result.get('decoded_url'):
-            return result['decoded_url']
+            decoded = result['decoded_url']
+            # 디코딩 결과가 도메인만(경로 없음)이면 → 원본 URL 보존
+            from urllib.parse import urlparse
+            path = urlparse(decoded).path.rstrip('/')
+            if not path or path == '':
+                print(f"  ⚠️ 디코딩 결과가 도메인만: {decoded} → 원본 URL 보존")
+                return google_url
+            return decoded
     except Exception:
         pass
     return google_url
