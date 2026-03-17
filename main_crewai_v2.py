@@ -137,10 +137,14 @@ def resolve_google_news_url(google_url: str) -> str:
     # 최종: 원본 URL 보존 (브라우저가 리디렉트)
     return google_url
 
-def fetch_google_news_rss(query: str, cutoff_date: datetime) -> list[dict]:
+def fetch_google_news_rss(query: str, cutoff_date: datetime, locale: str = "en") -> list[dict]:
+    """Google News RSS 수집. locale='en'(영어/미국) 또는 'ko'(한국어/한국)"""
     articles = []
     encoded = quote_plus(query)
-    url = f"https://news.google.com/rss/search?q={encoded}&hl=en&gl=US&ceid=US:en"
+    if locale == "ko":
+        url = f"https://news.google.com/rss/search?q={encoded}&hl=ko&gl=KR&ceid=KR:ko"
+    else:
+        url = f"https://news.google.com/rss/search?q={encoded}&hl=en&gl=US&ceid=US:en"
     headers = {"User-Agent": "Mozilla/5.0"}
     try:
         resp = requests.get(url, headers=headers, timeout=10)
@@ -299,14 +303,22 @@ def run_v2_orchestrator():
     
     history = load_history()
     keywords, queries, paper_queries = get_combined_queries()
+    core = load_json(CORE_QUERIES_FILE, {})
     
     print(f"📡 [Phase 1] 동적/코어 쿼리 병합 (총 {len(queries)}개 뉴스 쿼리 + {len(paper_queries)}개 논문 쿼리) ...")
     cutoff = datetime.now(timezone.utc) - timedelta(days=7)
     
-    # 뉴스 기사 수집
+    # 뉴스 기사 수집 (영어 + 한국어 피드)
     raw_articles = []
     for q in queries:
-        raw_articles.extend(fetch_google_news_rss(q, cutoff))
+        raw_articles.extend(fetch_google_news_rss(q, cutoff, locale="en"))
+    
+    # 한국어 피드 수집 (한국어 전용 쿼리)
+    ko_queries = core.get("ko_queries", [])
+    if ko_queries:
+        print(f"🇰🇷 [Phase 1-KR] 한국 뉴스 피드 수집 ({len(ko_queries)}개 쿼리) ...")
+        for kq in ko_queries:
+            raw_articles.extend(fetch_google_news_rss(kq, cutoff, locale="ko"))
     
     # 뉴스 기사에 source_type 태깅
     for a in raw_articles:
@@ -395,7 +407,7 @@ def run_v2_orchestrator():
                     "⚠️ 중요 규칙:\n"
                     "1) 특정 기업명(RTX, Boeing, Lockheed 등)이나 기업 고유 프로젝트명(LTAMDS, JPALS 등)을 쿼리에 넣지 마라. 기업별 수집은 이미 site_queries가 담당한다.\n"
                     "2) UAF는 반드시 MBSE 문맥의 Unified Architecture Framework를 의미한다. 우크라이나 군(Ukrainian Armed Forces) 관련 기사는 MBSE와 무관하므로 반드시 제외하라. UAF 관련 쿼리 생성 시 반드시 'UAF \"Unified Architecture Framework\"' 형태로 작성하라.\n"
-                    "3) 동적 쿼리는 반드시 범용 기술 트렌드 키워드(예: Digital Thread, MOSA, SysML v2)로만 구성하라.",
+                    "3) 동적 쿼리는 반드시 MBSE 직접 연관 키워드(MOSA, SysML v2, UAF, model-based integration)로만 구성하라. 'Digital Engineering' 또는 'Digital Thread'는 단독 키워드로 사용하지 말고, 반드시 MBSE 또는 SysML v2와 결합된 경우에만 허용한다.",
         expected_output="`DynamicQueryUpdate` JSON 스키마 구조로 된 신규 트렌드 쿼리 목록",
         agent=trend_analyzer,
         output_pydantic=DynamicQueryUpdate
