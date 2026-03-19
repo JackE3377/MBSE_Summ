@@ -9,7 +9,13 @@
         "MBSE \"Model-Based Systems Engineering\"",
         "SysML \"Systems Modeling Language\"",
         "MOSA \"Modular Open Systems Approach\"",
-        "SysML 2.0"
+        "SysML 2.0",
+        "MBSE defense aerospace",
+        "\"model-based systems engineering\" news",
+        "MOSA \"open architecture\" defense",
+        "SysML MBSE defense contractor",
+        "\"open systems architecture\" military modernization",
+        "MBSE MOSA aerospace systems integration"
     ],
     "site_queries": {
         "Boeing": "site:boeing.com MBSE OR \"digital twin\" OR \"model-based\"",
@@ -23,13 +29,16 @@
     "ko_queries": [
         "MBSE \"모델 기반 시스템 엔지니어링\"",
         "MOSA \"모듈형 개방 아키텍처\"",
-        "SysML 디지털 트윈 방산",
-        "MBSE 국방 항공우주"
+        "MBSE 국방 항공우주",
+        "\"개방형 아키텍처\" 국방 방산",
+        "\"모델기반 시스템엔지니어링\" 방위산업",
+        "MOSA 개방형 시스템 국방 현대화",
+        "SysML MBSE 방산 체계 통합"
     ],
     "paper_queries": [
         "Model-Based Systems Engineering",
         "SysML v2",
-        "MBSE digital twin aerospace",
+        "MBSE MOSA open architecture aerospace",
         "Unified Architecture Framework UAF"
     ]
 }
