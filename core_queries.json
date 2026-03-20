@@ -24,7 +24,13 @@
         "RTX/Raytheon": "site:rtx.com MBSE OR \"digital twin\" OR \"model-based\"",
         "L3Harris": "site:l3harris.com MBSE OR \"digital twin\" OR \"model-based\"",
         "INCOSE": "site:incose.org MBSE OR SysML OR \"systems engineering\"",
-        "Breaking Defense": "site:breakingdefense.com MBSE OR \"digital twin\" OR \"model-based\" OR MOSA"
+        "Breaking Defense": "site:breakingdefense.com MBSE OR \"digital twin\" OR \"model-based\" OR MOSA",
+        "Military Embedded Systems": "site:militaryembedded.com MOSA OR MBSE OR \"open architecture\" OR \"model-based\"",
+        "OUSD R&E MOSA": "site:cto.mil MOSA OR \"open systems\" OR \"modular open\"",
+        "NAVAIR MOSA": "site:navair.navy.mil MOSA OR \"open architecture\" OR \"modular open systems\"",
+        "DLA Standards MOSA": "site:dsp.dla.mil MOSA OR \"open systems\" OR \"modular open\"",
+        "DAU": "site:dau.edu MOSA OR MBSE OR \"open architecture\" OR \"systems engineering\"",
+        "Open Group FACE/SOSA": "site:opengroup.org FACE OR SOSA OR MOSA OR \"open architecture\""
     },
     "ko_queries": [
         "MBSE \"모델 기반 시스템 엔지니어링\"",
